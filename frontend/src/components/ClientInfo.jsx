@@ -1,25 +1,15 @@
+// src/components/ClientInfo.jsx
 import React from "react";
-
-const ClientInfo = ({ data }) => {
-  console.log("ClientInfo reçoit :", data);
-
-  // cc
-  if (!data) {
-    return <p>Aucun client sélectionné</p>;
-  }
-
+export default function ClientInfo({ data }) {
+  if (!data) return null;
   return (
     <div className="client-info">
       <h2>Données client</h2>
       <ul>
-        {Object.entries(data).map(([key, value]) => (
-          <li key={key}>
-            <strong>{key}</strong>: {value?.toString()}
-          </li>
+        {Object.entries(data).map(([k,v])=>(
+          <li key={k}><strong>{k}</strong>: {v?.toString()}</li>
         ))}
       </ul>
     </div>
   );
-};
-
-export default ClientInfo;
+}
