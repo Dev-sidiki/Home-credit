@@ -1,91 +1,49 @@
-// src/App.js
+// frontend/src/App.js
+import React from 'react';
+import {
+  BrowserRouter, Routes, Route, Navigate,
+} from 'react-router-dom';
 
-import React, { useState } from "react";
-import axios from "axios";
-import ClientSearch from "./components/ClientSearch";
-import ClientInfo from "./components/ClientInfo";
-import StatsDashboard from "./components/StatsDashboard";
-import ScoreGauge from "./components/ScoreGauge";
-import ScoreHistory from "./components/ScoreHistory";
-import WhereYouStand from "./components/WhereYouStand";
-import "./App.css";
+import AuthProvider, { useAuth } from './contexts/AuthContext';
 
-const BASE_URL = "http://127.0.0.1:5000";
+import Navbar        from './components/Navbar';
+import Login         from './pages/Login';
+import Signup        from './pages/Signup';
+import Dashboard     from './pages/Dashboard';
+import Dossiers      from './pages/Dossiers';
+import DossierForm   from './pages/DossierForm';
+import DossierDetail from './pages/DossierDetail';
+import Profile       from './pages/Profile';
 
-const App = () => {
-  const [clientData, setClientData] = useState(null);
-  const [clientId, setClientId]     = useState(null);
-  const [score, setScore]           = useState(null);
-  const [error, setError]           = useState("");
+function Protected({ children }) {
+  const { isAuth } = useAuth();
+  return isAuth ? children : <Navigate to="/login" />;
+}
 
-  const handleSearch = async (id) => {
-    const cid = parseInt(id, 10);
-    if (isNaN(cid)) {
-      setError("ID invalide");
-      setClientData(null);
-      setClientId(null);
-      setScore(null);
-      return;
-    }
-    setClientId(cid);
-    setError("");
-
-    try {
-      // fetch client info
-      const res = await axios.get(`${BASE_URL}/client/${cid}`);
-      const payload = typeof res.data === "string" ? JSON.parse(res.data) : res.data;
-      if (payload.status !== "ok" || !payload.client) {
-        throw new Error(payload.message || "Format de réponse incorrect");
-      }
-      setClientData(payload.client);
-
-      // fetch stored score
-      const pr = await axios.post(`${BASE_URL}/predict/${cid}`);
-      setScore(pr.data.score);
-    } catch (err) {
-      console.error(err);
-      setClientData(null);
-      setScore(null);
-      if (err.response?.status === 404) setError("Client non trouvé");
-      else setError(err.message || "Erreur réseau ou serveur");
-    }
-  };
-
+export default function App() {
   return (
-    <div className="App p-4 space-y-6">
-      <h1 className="text-2xl font-bold">Dashboard Home Credit</h1>
+    <AuthProvider>
+      <BrowserRouter>
+        <Navbar />
+        <Routes>
+          {/* routes publiques */}
+          <Route path="/login"  element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
 
-      <ClientSearch onSearch={handleSearch} />
-      {error && <p className="text-red-600">{error}</p>}
+          {/* routes protégées */}
+          <Route path="/" element={<Protected><Dashboard /></Protected>} />
 
-      <ClientInfo data={clientData} />
+          <Route path="/dossiers"      element={<Protected><Dossiers /></Protected>} />
+          <Route path="/dossiers/new"  element={<Protected><DossierForm /></Protected>} />
+          <Route path="/dossier/:id"         element={<Protected><DossierDetail /></Protected>} />
+          <Route path="/dossier/:id/edit"    element={<Protected><DossierForm /></Protected>} />
 
-      {clientData && score != null && (
-        <div className="space-y-8">
-          <div className="flex flex-col md:flex-row md:space-x-8">
-            <div className="flex-1">
-              <h2 className="text-xl font-semibold mb-2">Votre score</h2>
-              <ScoreGauge score={score} />
-            </div>
-            <div className="flex-1">
-              <h2 className="text-xl font-semibold mb-2">Where You Stand</h2>
-              <WhereYouStand score={score} />
-            </div>
-          </div>
+          <Route path="/profile" element={<Protected><Profile /></Protected>} />
 
-          <div>
-            <h2 className="text-xl font-semibold mb-2">My Score History</h2>
-            <ScoreHistory clientId={clientId} />
-          </div>
-
-          <div>
-            <h2 className="text-xl font-semibold mb-2">Analyse Statistique</h2>
-            <StatsDashboard clientId={clientId} />
-          </div>
-        </div>
-      )}
-    </div>
+          {/* fallback */}
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
-};
-
-export default App;
+}
